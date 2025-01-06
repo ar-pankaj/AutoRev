@@ -1,0 +1,14 @@
+{
+    "builtin": "False",
+    "default_enabled": "True",
+    "type": "extension",
+    "rocket_mode_compatible": "True",
+    "name": "AutoRev",
+    "description": "Automation within Revit. Tools created for saving time",
+    "author": "Pankaj Prabhakar",
+    "author_profile": "https://www.linkedin.com/in/ar-pankajprabhakar/",
+    "url": "https://github.com/ar-pankaj/AutoRev.git",
+    "website": "https://www.linkedin.com/in/ar-pankajprabhakar/",
+    "image": "",
+    "dependencies": []
+}
