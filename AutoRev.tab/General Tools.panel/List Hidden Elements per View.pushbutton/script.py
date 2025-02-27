@@ -89,10 +89,6 @@ def get_hidden_elements_per_view(doc):
 
     return hidden_elements
 
-
-# Get the current document
-doc = __revit__.ActiveUIDocument.Document
-
 # Retrieve hidden elements
 hidden_elements = get_hidden_elements_per_view(doc)
 

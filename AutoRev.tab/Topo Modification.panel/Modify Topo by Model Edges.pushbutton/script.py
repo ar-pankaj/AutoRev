@@ -28,6 +28,7 @@ __highlight__ = 'new'
 # Regular + Autodesk
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import TaskDialog
+from rpw.ui.forms import TaskDialog
 # pyRevit
 from pyrevit import revit, forms
 
@@ -54,5 +55,9 @@ app   = __revit__.Application
 # ╩ ╩╩ ╩╩╝╚╝ MAIN
 #==================================================
 
-forms.inform_wip()
+dialog = TaskDialog('Work in Progress',
+                    title_prefix=False,
+                    title = 'Work in Progress',
+                    show_close=False)
+dialog.show()
 
