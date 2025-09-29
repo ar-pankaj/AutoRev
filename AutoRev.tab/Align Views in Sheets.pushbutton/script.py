@@ -2,10 +2,10 @@
 # Align viewports on sheets by snapping the intersection of the bottom-most and left-most visible grids
 # to a point defined by a title block corner + (X, Y) offset on the sheet.
 #
-# UI: Tabbed dialog (Settings | Sheets) with multi-select sheet picker and filter.
+# UI: Simplified dialog, forcing sheet selection from a list. Offset units are fixed to mm.
 #
-# Author: M365 Copilot (for Pankaj Prabhakar)
-# Revit: 2020+ (requires Viewport.GetTransform)
+# Author: Pankaj Prabhakar
+# Revit: 2020+ (uses legacy viewport alignment for versions < 2022)
 # Env: pyRevit / RevitPythonShell (IronPython)
 
 from __future__ import division
@@ -192,10 +192,22 @@ def corner_point_from_bbox(corner_name, bbmin, bbmax):
         return XYZ(bbmax.X, bbmax.Y, 0.0)
     return None
 
-def viewport_transform_safe(vp):
-    if hasattr(vp, "GetTransform"):
-        return vp.GetTransform()
-    raise NotImplementedError("Viewport.GetTransform() not available in this Revit version.")
+def get_sheet_point_from_model_point_legacy(view, viewport, model_point):
+    """
+    Calculates the sheet coordinate for a given model point.
+    This is a fallback for Revit versions < 2022.
+    It assumes the viewport is not rotated on the sheet.
+    """
+    sheet_center_pt = viewport.GetBoxCenter()
+    crop_box = view.CropBox
+    crop_center_2d_view_coords = (crop_box.Min + crop_box.Max) / 2.0
+    anchor_2d_view_coords = to_view_xy(view, model_point)
+    delta_x_model = anchor_2d_view_coords[0] - crop_center_2d_view_coords.X
+    delta_y_model = anchor_2d_view_coords[1] - crop_center_2d_view_coords.Y
+    scale = view.Scale
+    delta_x_sheet = delta_x_model / scale
+    delta_y_sheet = delta_y_model / scale
+    return sheet_center_pt + XYZ(delta_x_sheet, delta_y_sheet, 0)
 
 def get_allowed_plan_types():
     """Build a list of plan-like ViewType enum values that exist in this Revit version."""
@@ -208,6 +220,28 @@ def get_allowed_plan_types():
         allowed.append(structp)
     return tuple(allowed)
 
+def format_as_table(headers, rows):
+    """Formats a list of lists into a text table for printing."""
+    if not rows:
+        return "(None)"
+
+    # Calculate maximum width for each column
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(str(cell)))
+
+    # Create the header and separator
+    header_line = " | ".join(header.ljust(widths[i]) for i, header in enumerate(headers))
+    separator_line = "-+-".join("-" * width for width in widths)
+    
+    # Create the data rows
+    row_lines = []
+    for row in rows:
+        row_lines.append(" | ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(row)))
+
+    return "\n".join([header_line, separator_line] + row_lines)
+
 ALLOWED_PLAN_TYPES = get_allowed_plan_types()
 
 # ----------------- Windows Form -----------------
@@ -218,104 +252,81 @@ class AlignViewsForm(Form):
         self.Text = "Align Viewports to Grid Intersection"
         self.FormBorderStyle = FormBorderStyle.FixedDialog
         self.StartPosition = FormStartPosition.CenterScreen
-        self.ClientSize = Size(700, 560)
-        self.MinimumSize = Size(700, 560)
+        self.ClientSize = Size(700, 620)
+        self.MinimumSize = Size(700, 620)
         self.AutoScaleMode = AutoScaleMode.Font
+        
+        # ---- GroupBox for Alignment Settings ----
+        gbSettings = GroupBox()
+        gbSettings.Text = "Alignment Settings"
+        gbSettings.Location = Point(10, 10)
+        gbSettings.Size = Size(self.ClientSize.Width - 20, 190)
+        gbSettings.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
 
-        # ---- Tab control ----
-        self.tabs = TabControl()
-        self.tabs.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
-        self.tabs.Location = Point(10, 10)
-        self.tabs.Size = Size(self.ClientSize.Width - 20, self.ClientSize.Height - 80)
-
-        self.tabSettings = TabPage("Settings")
-        self.tabSettings.AutoScroll = True
-        self.tabSheets = TabPage("Sheets")
-        self.tabSheets.AutoScroll = True
-
-        self.tabs.TabPages.Add(self.tabSettings)
-        self.tabs.TabPages.Add(self.tabSheets)
-        self.Controls.Add(self.tabs)
-
-        # ---- Settings tab ----
-        y = 15
+        y = 25
         pad = 30
-
+        
         lbl_corner = Label(Text="Title Block Corner:", Location=Point(15, y), AutoSize=True)
         self.cbCorner = ComboBox(Location=Point(200, y-3), Size=Size(200, 22), DropDownStyle=ComboBoxStyle.DropDownList)
         for s in ["Bottom-Left", "Bottom-Right", "Top-Left", "Top-Right"]:
             self.cbCorner.Items.Add(s)
         self.cbCorner.SelectedIndex = 0
-        self.cbCorner.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        self.cbCorner.Anchor = AnchorStyles.Top | AnchorStyles.Left
         y += pad
 
-        lbl_units = Label(Text="Offset Units:", Location=Point(15, y), AutoSize=True)
-        self.cbUnits = ComboBox(Location=Point(200, y-3), Size=Size(200, 22), DropDownStyle=ComboBoxStyle.DropDownList)
-        for s in ["mm", "inches"]:
-            self.cbUnits.Items.Add(s)
-        self.cbUnits.SelectedIndex = 0
-        self.cbUnits.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        y += pad
-
-        lbl_offx = Label(Text="Offset X (+→):", Location=Point(15, y), AutoSize=True)
+        lbl_offx = Label(Text="Offset X (+→) (mm):", Location=Point(15, y), AutoSize=True)
         self.tbOffX = TextBox(Text="20", Location=Point(200, y-3), Size=Size(200, 22))
-        self.tbOffX.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        self.tbOffX.Anchor = AnchorStyles.Top | AnchorStyles.Left
         y += pad
 
-        lbl_offy = Label(Text="Offset Y (+↑):", Location=Point(15, y), AutoSize=True)
+        lbl_offy = Label(Text="Offset Y (+↑) (mm):", Location=Point(15, y), AutoSize=True)
         self.tbOffY = TextBox(Text="20", Location=Point(200, y-3), Size=Size(200, 22))
-        self.tbOffY.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        y += pad
+        self.tbOffY.Anchor = AnchorStyles.Top | AnchorStyles.Left
+        y += pad + 5
 
-        self.chkPlanOnly = CheckBox(Text="Plan views only", Checked=True, Location=Point(15, y))
-        y += 24
-        self.chkStrictTB = CheckBox(Text="Strict: exactly 1 title block", Checked=True, Location=Point(15, y))
-        y += 24
+        self.chkPlanOnly = CheckBox(Text="Process plan views only", Checked=True, Location=Point(15, y), AutoSize=True)
+        y += 25
+        self.chkStrictTB = CheckBox(Text="Process only sheets with exactly one title block", Checked=True, Location=Point(15, y), AutoSize=True)
 
-        lbl_tol = Label(Text="Axis tolerance (0..1):", Location=Point(15, y), AutoSize=True)
-        self.tbTol = TextBox(Text="0.15", Location=Point(200, y-3), Size=Size(200, 22))
-        self.tbTol.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        y += pad
-
-        # add to Settings tab
-        for c in [lbl_corner, self.cbCorner, lbl_units, self.cbUnits,
+        for c in [lbl_corner, self.cbCorner,
                   lbl_offx, self.tbOffX, lbl_offy, self.tbOffY,
-                  self.chkPlanOnly, self.chkStrictTB, lbl_tol, self.tbTol]:
-            self.tabSettings.Controls.Add(c)
+                  self.chkPlanOnly, self.chkStrictTB]:
+            gbSettings.Controls.Add(c)
+        
+        self.Controls.Add(gbSettings)
 
-        # ---- Sheets tab ----
-        yy = 15
+        # ---- GroupBox for Sheet Selection ----
+        gbSheets = GroupBox()
+        gbSheets.Text = "Select Sheets to Process"
+        gbSheets.Location = Point(10, gbSettings.Bottom + 10)
+        gbSheets.Size = Size(self.ClientSize.Width - 20, 350)
+        gbSheets.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
 
-        self.rbAll = RadioButton(Text="All sheets", Location=Point(15, yy), Checked=True)
-        yy += 24
-        self.rbSelected = RadioButton(Text="Selected sheets (current selection)", Location=Point(15, yy))
-        yy += 24
-        self.rbPickList = RadioButton(Text="Pick from list", Location=Point(15, yy))
-        yy += 30
-
-        lbl_filter = Label(Text="Filter:", Location=Point(30, yy+3), AutoSize=True)
-        self.tbFilter = TextBox(Location=Point(80, yy), Size=Size(260, 22))
+        yy = 25
+        
+        lbl_filter = Label(Text="Filter:", Location=Point(15, yy+3), AutoSize=True)
+        self.tbFilter = TextBox(Location=Point(65, yy), Size=Size(275, 22))
+        self.tbFilter.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         self.btnSelectAll = Button(Text="Select All", Location=Point(350, yy-1), Size=Size(90, 26))
+        self.btnSelectAll.Anchor = AnchorStyles.Top | AnchorStyles.Right
         self.btnSelectNone = Button(Text="Select None", Location=Point(450, yy-1), Size=Size(100, 26))
+        self.btnSelectNone.Anchor = AnchorStyles.Top | AnchorStyles.Right
         yy += 34
 
-        self.lbSheets = ListBox(Location=Point(30, yy), Size=Size(520, 300))
+        self.lbSheets = ListBox(Location=Point(15, yy), Size=Size(gbSheets.Width - 30, 280))
         self.lbSheets.SelectionMode = SelectionMode.MultiExtended
         self.lbSheets.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
 
         # Events
-        self.rbAll.CheckedChanged += self._scope_changed
-        self.rbSelected.CheckedChanged += self._scope_changed
-        self.rbPickList.CheckedChanged += self._scope_changed
         self.tbFilter.TextChanged += self._apply_filter
         self.btnSelectAll.Click += self._select_all
         self.btnSelectNone.Click += self._select_none
-
-        # add to Sheets tab
-        for c in [self.rbAll, self.rbSelected, self.rbPickList,
-                  lbl_filter, self.tbFilter, self.btnSelectAll, self.btnSelectNone, self.lbSheets]:
-            self.tabSheets.Controls.Add(c)
-
+        
+        for c in [lbl_filter, self.tbFilter, self.btnSelectAll, self.btnSelectNone, self.lbSheets]:
+            gbSheets.Controls.Add(c)
+        
+        self.Controls.Add(gbSheets)
+        
         # populate sheet list
         self._all_sheets = list(FilteredElementCollector(self._doc).OfClass(ViewSheet))
         self._all_sheets.sort(key=lambda s: (s.SheetNumber or "").upper())
@@ -326,38 +337,23 @@ class AlignViewsForm(Form):
             self.lbSheets.Items.Add(label)
         self._sheet_items_filtered = [lbl for (lbl, _) in self._sheet_items]
 
-        # Initially disable picklist controls
-        self._enable_picklist(False)
-
         # ---- Buttons (bottom-right) ----
         self.btnOK = Button(Text="Run", Size=Size(90, 28))
         self.btnCancel = Button(Text="Cancel", Size=Size(90, 28))
-        # position relative to form size
         self.btnOK.Location = Point(self.ClientSize.Width - 200, self.ClientSize.Height - 50)
         self.btnCancel.Location = Point(self.ClientSize.Width - 100, self.ClientSize.Height - 50)
         self.btnOK.Anchor = AnchorStyles.Right | AnchorStyles.Bottom
         self.btnCancel.Anchor = AnchorStyles.Right | AnchorStyles.Bottom
-
         self.btnOK.Click += self.on_ok
         self.btnCancel.Click += self.on_cancel
-
         self.Controls.Add(self.btnOK)
         self.Controls.Add(self.btnCancel)
 
         self.Values = None
 
-    # ---- Scope helpers ----
-    def _enable_picklist(self, enabled):
-        self.lbSheets.Enabled = enabled
-        self.tbFilter.Enabled = enabled
-        self.btnSelectAll.Enabled = enabled
-        self.btnSelectNone.Enabled = enabled
-
-    def _scope_changed(self, sender, args):
-        self._enable_picklist(self.rbPickList.Checked)
-
     def _apply_filter(self, sender, args):
         query = (self.tbFilter.Text or "").strip().lower()
+        self.lbSheets.BeginUpdate()
         self.lbSheets.Items.Clear()
         if not query:
             self._sheet_items_filtered = [lbl for (lbl, _) in self._sheet_items]
@@ -365,59 +361,37 @@ class AlignViewsForm(Form):
             self._sheet_items_filtered = [lbl for (lbl, _) in self._sheet_items if query in lbl.lower()]
         for lbl in self._sheet_items_filtered:
             self.lbSheets.Items.Add(lbl)
+        self.lbSheets.EndUpdate()
 
     def _select_all(self, sender, args):
         for i in range(self.lbSheets.Items.Count):
             self.lbSheets.SetSelected(i, True)
 
     def _select_none(self, sender, args):
-        for i in range(self.lbSheets.Items.Count):
-            self.lbSheets.SetSelected(i, False)
+        self.lbSheets.ClearSelected()
 
-    # ---- OK / Cancel ----
     def on_ok(self, sender, args):
         corner = self.cbCorner.SelectedItem
-        units = self.cbUnits.SelectedItem
         offx = parse_float(self.tbOffX.Text, 0.0)
         offy = parse_float(self.tbOffY.Text, 0.0)
         plan_only = bool(self.chkPlanOnly.Checked)
         strict_tb = bool(self.chkStrictTB.Checked)
-        axis_tol = parse_float(self.tbTol.Text, 0.15)
 
-        # Convert to feet
-        if units == "mm":
-            offset_x_ft = mm_to_ft(offx)
-            offset_y_ft = mm_to_ft(offy)
-        else:
-            offset_x_ft = in_to_ft(offx)
-            offset_y_ft = in_to_ft(offy)
+        # Convert from fixed mm unit to feet
+        offset_x_ft, offset_y_ft = mm_to_ft(offx), mm_to_ft(offy)
 
-        # Determine scope
-        if self.rbSelected.Checked:
-            scope_mode = "selected"
-            picklist_ids = None
-        elif self.rbPickList.Checked:
-            scope_mode = "picklist"
-            # map selected labels back to ElementIds
-            selected_labels = [self.lbSheets.Items[i] for i in range(self.lbSheets.Items.Count) if self.lbSheets.GetSelected(i)]
-            if not selected_labels:
-                TaskDialog.Show("Align Viewports", "Please select at least one sheet from the list or choose a different scope.")
-                return
-            label_to_id = dict(self._sheet_items)  # label -> ElementId
-            picklist_ids = [label_to_id[lbl] for lbl in selected_labels if lbl in label_to_id]
-        else:
-            scope_mode = "all"
-            picklist_ids = None
+        # Scope is now fixed to "picklist"
+        selected_labels = list(self.lbSheets.SelectedItems)
+        if not selected_labels:
+            TaskDialog.Show("Align Viewports", "Please select at least one sheet from the list to process.")
+            return
+        label_to_id = dict(self._sheet_items)
+        picklist_ids = [label_to_id[lbl] for lbl in selected_labels if lbl in label_to_id]
 
         self.Values = {
-            "corner": corner,
-            "offset_x_ft": offset_x_ft,
-            "offset_y_ft": offset_y_ft,
-            "scope_mode": scope_mode,
-            "picklist_ids": picklist_ids,
-            "plan_only": plan_only,
-            "strict_tb": strict_tb,
-            "axis_tol": axis_tol
+            "corner": corner, "offset_x_ft": offset_x_ft, "offset_y_ft": offset_y_ft,
+            "picklist_ids": picklist_ids, "plan_only": plan_only,
+            "strict_tb": strict_tb, "axis_tol": 0.15 # Hardcoded value
         }
         self.DialogResult = DialogResult.OK
         self.Close()
@@ -428,137 +402,119 @@ class AlignViewsForm(Form):
 
 # ----------------- Main -----------------
 
-# pyRevit injection
-uiapp = __revit__
-uidoc = uiapp.ActiveUIDocument
-doc = uidoc.Document
+if __name__ == '__main__':
+    # pyRevit injection
+    uiapp = __revit__
+    uidoc = uiapp.ActiveUIDocument
+    doc = uidoc.Document
 
-# Show dialog
-form = AlignViewsForm(doc)
-res = form.ShowDialog()
-
-if res != DialogResult.OK or not form.Values:
-    sys.exit()
-
-corner = form.Values["corner"]
-offset_x_ft = form.Values["offset_x_ft"]
-offset_y_ft = form.Values["offset_y_ft"]
-scope_mode = form.Values["scope_mode"]           # "all" | "selected" | "picklist"
-picklist_ids = form.Values["picklist_ids"]       # list[ElementId] or None
-plan_only = form.Values["plan_only"]
-strict_tb = form.Values["strict_tb"]
-axis_tol = form.Values["axis_tol"]
-
-# Collect sheets per scope
-if scope_mode == "selected":
-    sel_ids = list(uidoc.Selection.GetElementIds())
-    sheets = []
-    for eid in sel_ids:
-        el = doc.GetElement(eid)
-        if not el:
-            continue
-        if isinstance(el, ViewSheet):
-            if el not in sheets:
-                sheets.append(el)
-            continue
-        # Resolve owner sheet if an element on a sheet is selected
-        try:
-            owner_view_id = el.OwnerViewId
-            if owner_view_id and owner_view_id.IntegerValue != -1:
-                vw = doc.GetElement(owner_view_id)
-                if isinstance(vw, ViewSheet) and vw not in sheets:
-                    sheets.append(vw)
-        except:
-            pass
-    if not sheets:
-        TaskDialog.Show("Align Viewports", "No sheets found in current selection.")
+    form = AlignViewsForm(doc)
+    if form.ShowDialog() != DialogResult.OK or not form.Values:
         sys.exit()
-elif scope_mode == "picklist":
+
+    vals = form.Values
+    
+    # Sheet collection is now only from the picklist
+    picklist_ids = vals["picklist_ids"]
     sheets = [doc.GetElement(eid) for eid in picklist_ids if isinstance(eid, ElementId)]
     sheets = [s for s in sheets if isinstance(s, ViewSheet)]
     if not sheets:
-        TaskDialog.Show("Align Viewports", "No valid sheets selected from the list.")
+        print("ERROR: No valid sheets were selected from the list.")
         sys.exit()
-else:
-    sheets = list(FilteredElementCollector(doc).OfClass(ViewSheet))
 
-processed = 0
-skipped = []
+    # MODIFIED: Changed from processed_sheets to processed_views to hold more detail
+    processed_views = []
+    skipped = []
 
-tg = TransactionGroup(doc, "Align Viewports to Grid Intersection")
-tg.Start()
+    tg = TransactionGroup(doc, "Align Viewports to Grid Intersection")
+    tg.Start()
+    try:
+        for sheet in sheets:
+            vports = list(FilteredElementCollector(doc, sheet.Id).OfClass(Viewport))
+            if not vports:
+                skipped.append((sheet.SheetNumber, "No viewports"))
+                continue
 
-try:
-    for sheet in sheets:
-        # Viewports on this sheet only (scoped collector)
-        vports = list(FilteredElementCollector(doc, sheet.Id).OfClass(Viewport))
-        if not vports:
-            skipped.append((sheet.SheetNumber, "No viewports"))
-            continue
+            bb = get_titleblock_bbox_on_sheet(doc, sheet, vals["strict_tb"])
+            if not bb:
+                skipped.append((sheet.SheetNumber, "Missing/Multiple title blocks or invalid bbox"))
+                continue
 
-        bb = get_titleblock_bbox_on_sheet(doc, sheet, strict_tb)
-        if not bb:
-            skipped.append((sheet.SheetNumber, "Missing/Multiple title blocks (strict mode) or invalid bbox"))
-            continue
+            base_corner = corner_point_from_bbox(vals["corner"], bb[0], bb[1])
+            if not base_corner:
+                skipped.append((sheet.SheetNumber, "Invalid corner selection"))
+                continue
 
-        bbmin, bbmax = bb
-        base_corner = corner_point_from_bbox(corner, bbmin, bbmax)
-        if not base_corner:
-            skipped.append((sheet.SheetNumber, "Invalid corner selection"))
-            continue
+            target_pt = XYZ(base_corner.X + vals["offset_x_ft"], base_corner.Y + vals["offset_y_ft"], 0.0)
 
-        target_pt = XYZ(base_corner.X + offset_x_ft, base_corner.Y + offset_y_ft, 0.0)
+            t = Transaction(doc, "Align viewports on sheet {}".format(sheet.SheetNumber))
+            t.Start()
+            try:
+                aligned_any = False
+                for vp in vports:
+                    view = doc.GetElement(vp.ViewId)
+                    if not view or (vals["plan_only"] and view.ViewType not in ALLOWED_PLAN_TYPES):
+                        continue
 
-        t = Transaction(doc, "Align viewports on sheet {}".format(sheet.SheetNumber))
-        t.Start()
-        try:
-            aligned_any = False
+                    model_anchor = find_bottom_left_grid_intersection(doc, view, vals["axis_tol"])
+                    if model_anchor is None:
+                        continue
+                    
+                    current_sheet_pt = None
+                    try:
+                        if hasattr(vp, "GetTransform"): # Revit 2022+
+                            transform = vp.GetTransform()
+                            current_sheet_pt = transform.OfPoint(model_anchor)
+                        else: # Legacy
+                            current_sheet_pt = get_sheet_point_from_model_point_legacy(view, vp, model_anchor)
+                    except Exception as e:
+                        skipped.append((sheet.SheetNumber, "Error calculating transform: {}".format(e)))
+                        continue
+                    
+                    if not current_sheet_pt:
+                        continue
 
-            for vp in vports:
-                view = doc.GetElement(vp.ViewId)
-                if not view:
-                    continue
-                if plan_only and (view.ViewType not in ALLOWED_PLAN_TYPES):
-                    continue
+                    delta = target_pt - current_sheet_pt
+                    new_center = vp.GetBoxCenter().Add(delta)
+                    vp.SetBoxCenter(new_center)
+                    aligned_any = True
+                    # MODIFIED: Record the specific view, its status, and sheet name for the final report
+                    processed_views.append(
+                        (view.Name, "Aligned", "{} - {}".format(sheet.SheetNumber, sheet.Name))
+                    )
 
-                # Find grid intersection in model space
-                model_anchor = find_bottom_left_grid_intersection(doc, view, axis_tol)
-                if model_anchor is None:
-                    continue
-
-                # Map that model point to current sheet coords via viewport transform
-                try:
-                    xf = viewport_transform_safe(vp)
-                except NotImplementedError:
-                    skipped.append((sheet.SheetNumber, "Viewport transform unsupported"))
-                    continue
-
-                current_sheet_pt = xf.OfPoint(model_anchor)
-
-                # Compute delta and move viewport (via box center)
-                delta = XYZ(target_pt.X - current_sheet_pt.X, target_pt.Y - current_sheet_pt.Y, 0.0)
-                new_center = vp.GetBoxCenter().Add(delta)
-                vp.SetBoxCenter(new_center)
-                aligned_any = True
-
-            if aligned_any:
-                t.Commit()
-                processed += 1
-            else:
+                if aligned_any:
+                    t.Commit()
+                else:
+                    t.RollBack()
+                    skipped.append((sheet.SheetNumber, "No eligible viewports found (check grids/filters)"))
+            except Exception as e:
                 t.RollBack()
-                skipped.append((sheet.SheetNumber, "No eligible viewports (no grids / filtered by options)"))
-        except Exception as e:
-            t.RollBack()
-            skipped.append((sheet.SheetNumber, "Error: {}".format(e)))
+                skipped.append((sheet.SheetNumber, "Runtime Error: {}".format(e)))
+        tg.Assimilate()
+    except Exception as e:
+        tg.RollBack()
+        print("FATAL ERROR: An unexpected error occurred: {}".format(e))
 
-    tg.Assimilate()
-except Exception as e:
-    tg.RollBack()
-    raise
+    # --- Final Report ---
+    report = ["--- Align Viewports Report ---"]
 
-# Report
-msg = "Done.\nSheets processed (committed): {}\n".format(processed)
-if skipped:
-    msg += "Skipped:\n" + "\n".join([" - {}: {}".format(s[0], s[1]) for s in skipped])
-TaskDialog.Show("Align Viewports", msg)
-print(msg)
+    # MODIFIED: Changed report to show aligned views in a 3-column table
+    report.append("\n## Aligned Views ({})".format(len(processed_views)))
+    proc_headers = ["View Name", "Status", "Sheet"]
+    # Sort results by Sheet, then by View Name for better readability
+    sorted_processed = sorted(processed_views, key=lambda x: (x[2], x[0]))
+    report.append(format_as_table(proc_headers, sorted_processed))
+
+    # Separator
+    report.append("\n" + "-"*60 + "\n")
+
+    # Skipped Sheets Table (remains the same)
+    report.append("## Skipped Sheets ({})".format(len(skipped)))
+    skip_headers = ["Sheet", "Reason for Skipping"]
+    # Ensure skipped items are unique and sorted
+    sorted_skipped = sorted(list(set(skipped)))
+    report.append(format_as_table(skip_headers, sorted_skipped))
+    
+    # Print the final report to the pyRevit output
+    print("\n".join(report))
