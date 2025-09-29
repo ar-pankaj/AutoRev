@@ -22,6 +22,9 @@ from Autodesk.Revit.DB import (
 )
 from Autodesk.Revit.UI import TaskDialog
 
+# Added pyrevit import for output handling
+from pyrevit import script
+
 # ----------------- UI (Windows Forms) -----------------
 clr.AddReference('System')
 clr.AddReference('System.Drawing')
@@ -220,28 +223,6 @@ def get_allowed_plan_types():
         allowed.append(structp)
     return tuple(allowed)
 
-def format_as_table(headers, rows):
-    """Formats a list of lists into a text table for printing."""
-    if not rows:
-        return "(None)"
-
-    # Calculate maximum width for each column
-    widths = [len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], len(str(cell)))
-
-    # Create the header and separator
-    header_line = " | ".join(header.ljust(widths[i]) for i, header in enumerate(headers))
-    separator_line = "-+-".join("-" * width for width in widths)
-    
-    # Create the data rows
-    row_lines = []
-    for row in rows:
-        row_lines.append(" | ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(row)))
-
-    return "\n".join([header_line, separator_line] + row_lines)
-
 ALLOWED_PLAN_TYPES = get_allowed_plan_types()
 
 # ----------------- Windows Form -----------------
@@ -422,7 +403,6 @@ if __name__ == '__main__':
         print("ERROR: No valid sheets were selected from the list.")
         sys.exit()
 
-    # MODIFIED: Changed from processed_sheets to processed_views to hold more detail
     processed_views = []
     skipped = []
 
@@ -478,7 +458,7 @@ if __name__ == '__main__':
                     new_center = vp.GetBoxCenter().Add(delta)
                     vp.SetBoxCenter(new_center)
                     aligned_any = True
-                    # MODIFIED: Record the specific view, its status, and sheet name for the final report
+                    # Record the specific view, its status, and sheet name for the final report
                     processed_views.append(
                         (view.Name, "Aligned", "{} - {}".format(sheet.SheetNumber, sheet.Name))
                     )
@@ -496,25 +476,37 @@ if __name__ == '__main__':
         tg.RollBack()
         print("FATAL ERROR: An unexpected error occurred: {}".format(e))
 
-    # --- Final Report ---
-    report = ["--- Align Viewports Report ---"]
+    # --- Final Report (MODIFIED to use pyRevit Data Tables) ---
+    output = script.get_output()
+    output.set_title("Align Viewports Report")
 
-    # MODIFIED: Changed report to show aligned views in a 3-column table
-    report.append("\n## Aligned Views ({})".format(len(processed_views)))
-    proc_headers = ["View Name", "Status", "Sheet"]
-    # Sort results by Sheet, then by View Name for better readability
-    sorted_processed = sorted(processed_views, key=lambda x: (x[2], x[0]))
-    report.append(format_as_table(proc_headers, sorted_processed))
+    # --- Aligned Views Table ---
+    if processed_views:
+        # Sort results by Sheet, then by View Name for better readability
+        sorted_processed = sorted(processed_views, key=lambda x: (x[2], x[0]))
+        
+        aligned_table_data = []
+        for view_name, status, sheet_info in sorted_processed:
+            # MODIFIED: Wrap the status in an HTML div for styling
+            styled_status = '<div style="color:green; font-weight:bold;">{}</div>'.format(status)
+            aligned_table_data.append([sheet_info, view_name, styled_status])
 
-    # Separator
-    report.append("\n" + "-"*60 + "\n")
+        output.print_table(
+            table_data=aligned_table_data,
+            title="Aligned Views ({})".format(len(aligned_table_data)),
+            columns=["Sheets", "View Name", "Status"]
+            # MODIFIED: Removed the incorrect 'formats' parameter
+        )
 
-    # Skipped Sheets Table (remains the same)
-    report.append("## Skipped Sheets ({})".format(len(skipped)))
-    skip_headers = ["Sheet", "Reason for Skipping"]
-    # Ensure skipped items are unique and sorted
-    sorted_skipped = sorted(list(set(skipped)))
-    report.append(format_as_table(skip_headers, sorted_skipped))
-    
-    # Print the final report to the pyRevit output
-    print("\n".join(report))
+    # --- Skipped Sheets Table ---
+    if skipped:
+        # Ensure skipped items are unique and sorted
+        sorted_skipped = sorted(list(set(skipped)))
+        output.print_table(
+            table_data=sorted_skipped,
+            title="Skipped Sheets ({})".format(len(sorted_skipped)),
+            columns=["Sheet", "Reason for Skipping"]
+        )
+
+    if not processed_views and not skipped:
+        print("No sheets were selected or processed.")
