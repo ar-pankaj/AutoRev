@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # Align viewports on sheets by snapping the intersection of the bottom-most and left-most visible grids
-# to a point defined by a title block corner + (X, Y) offset on the sheet.
+# to a user-picked point + (X, Y) offset on the sheet.
 #
-# UI: Simplified dialog, forcing sheet selection from a list. Offset units are fixed to mm.
+# UI: Point selection runs before the main dialog. Offset units are fixed to mm.
 #
-# Author: Pankaj Prabhakar
+# Author: Pankaj Prabhakar (Modified by Gemini)
 # Revit: 2020+ (uses legacy viewport alignment for versions < 2022)
 # Env: pyRevit / RevitPythonShell (IronPython)
 
@@ -20,7 +20,10 @@ from Autodesk.Revit.DB import (
     FilteredElementCollector, BuiltInCategory, Transaction, TransactionGroup,
     Viewport, ViewType, XYZ, ViewSheet, ElementId
 )
-from Autodesk.Revit.UI import TaskDialog
+from Autodesk.Revit.UI import TaskDialog, TaskDialogIcon
+# Import for point selection and exception handling
+from Autodesk.Revit.UI.Selection import ObjectSnapTypes
+from Autodesk.Revit.Exceptions import OperationCanceledException
 
 # Added pyrevit import for output handling
 from pyrevit import script
@@ -169,31 +172,16 @@ def find_bottom_left_grid_intersection(doc, view, axis_tol):
 
     return from_view_xy(view, x_left, y_bot)
 
-def get_titleblock_bbox_on_sheet(doc, sheet, strict_one_titleblock):
-    """Return (bbmin, bbmax) in sheet coordinates."""
+def get_titleblock_on_sheet(doc, sheet, strict_one_titleblock):
+    """Check for title block presence based on strictness rule."""
     tblocks = list(FilteredElementCollector(doc, sheet.Id)
-                   .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                   .WhereElementIsNotElementType())
+                      .OfCategory(BuiltInCategory.OST_TitleBlocks)
+                      .WhereElementIsNotElementType())
     if not tblocks:
         return None
     if strict_one_titleblock and len(tblocks) != 1:
         return None
-    tb = tblocks[0]
-    bb = tb.get_BoundingBox(sheet)
-    if not bb:
-        return None
-    return (bb.Min, bb.Max)
-
-def corner_point_from_bbox(corner_name, bbmin, bbmax):
-    if corner_name == "Bottom-Left":
-        return XYZ(bbmin.X, bbmin.Y, 0.0)
-    if corner_name == "Bottom-Right":
-        return XYZ(bbmax.X, bbmin.Y, 0.0)
-    if corner_name == "Top-Left":
-        return XYZ(bbmin.X, bbmax.Y, 0.0)
-    if corner_name == "Top-Right":
-        return XYZ(bbmax.X, bbmax.Y, 0.0)
-    return None
+    return tblocks[0]
 
 def get_sheet_point_from_model_point_legacy(view, viewport, model_point):
     """
@@ -233,35 +221,29 @@ class AlignViewsForm(Form):
         self.Text = "Align Viewports to Grid Intersection"
         self.FormBorderStyle = FormBorderStyle.FixedDialog
         self.StartPosition = FormStartPosition.CenterScreen
-        self.ClientSize = Size(700, 620)
-        self.MinimumSize = Size(700, 620)
+        self.ClientSize = Size(700, 580) # Reduced height
+        self.MinimumSize = Size(700, 580)
         self.AutoScaleMode = AutoScaleMode.Font
         
         # ---- GroupBox for Alignment Settings ----
         gbSettings = GroupBox()
         gbSettings.Text = "Alignment Settings"
         gbSettings.Location = Point(10, 10)
-        gbSettings.Size = Size(self.ClientSize.Width - 20, 190)
+        gbSettings.Size = Size(self.ClientSize.Width - 20, 150) # Reduced height
         gbSettings.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
 
         y = 25
         pad = 30
         
-        lbl_corner = Label(Text="Title Block Corner:", Location=Point(15, y), AutoSize=True)
-        self.cbCorner = ComboBox(Location=Point(200, y-3), Size=Size(200, 22), DropDownStyle=ComboBoxStyle.DropDownList)
-        for s in ["Bottom-Left", "Bottom-Right", "Top-Left", "Top-Right"]:
-            self.cbCorner.Items.Add(s)
-        self.cbCorner.SelectedIndex = 0
-        self.cbCorner.Anchor = AnchorStyles.Top | AnchorStyles.Left
-        y += pad
+        # REMOVED: Title Block Corner dropdown is no longer needed.
 
-        lbl_offx = Label(Text="Offset X (+→) (mm):", Location=Point(15, y), AutoSize=True)
-        self.tbOffX = TextBox(Text="20", Location=Point(200, y-3), Size=Size(200, 22))
+        lbl_offx = Label(Text="Offset X (+→) from Picked Point (mm):", Location=Point(15, y), AutoSize=True)
+        self.tbOffX = TextBox(Text="0", Location=Point(260, y-3), Size=Size(140, 22))
         self.tbOffX.Anchor = AnchorStyles.Top | AnchorStyles.Left
         y += pad
 
-        lbl_offy = Label(Text="Offset Y (+↑) (mm):", Location=Point(15, y), AutoSize=True)
-        self.tbOffY = TextBox(Text="20", Location=Point(200, y-3), Size=Size(200, 22))
+        lbl_offy = Label(Text="Offset Y (+↑) from Picked Point (mm):", Location=Point(15, y), AutoSize=True)
+        self.tbOffY = TextBox(Text="0", Location=Point(260, y-3), Size=Size(140, 22))
         self.tbOffY.Anchor = AnchorStyles.Top | AnchorStyles.Left
         y += pad + 5
 
@@ -269,9 +251,8 @@ class AlignViewsForm(Form):
         y += 25
         self.chkStrictTB = CheckBox(Text="Process only sheets with exactly one title block", Checked=True, Location=Point(15, y), AutoSize=True)
 
-        for c in [lbl_corner, self.cbCorner,
-                  lbl_offx, self.tbOffX, lbl_offy, self.tbOffY,
-                  self.chkPlanOnly, self.chkStrictTB]:
+        for c in [lbl_offx, self.tbOffX, lbl_offy, self.tbOffY,
+                    self.chkPlanOnly, self.chkStrictTB]:
             gbSettings.Controls.Add(c)
         
         self.Controls.Add(gbSettings)
@@ -352,7 +333,6 @@ class AlignViewsForm(Form):
         self.lbSheets.ClearSelected()
 
     def on_ok(self, sender, args):
-        corner = self.cbCorner.SelectedItem
         offx = parse_float(self.tbOffX.Text, 0.0)
         offy = parse_float(self.tbOffY.Text, 0.0)
         plan_only = bool(self.chkPlanOnly.Checked)
@@ -361,7 +341,6 @@ class AlignViewsForm(Form):
         # Convert from fixed mm unit to feet
         offset_x_ft, offset_y_ft = mm_to_ft(offx), mm_to_ft(offy)
 
-        # Scope is now fixed to "picklist"
         selected_labels = list(self.lbSheets.SelectedItems)
         if not selected_labels:
             TaskDialog.Show("Align Viewports", "Please select at least one sheet from the list to process.")
@@ -370,7 +349,7 @@ class AlignViewsForm(Form):
         picklist_ids = [label_to_id[lbl] for lbl in selected_labels if lbl in label_to_id]
 
         self.Values = {
-            "corner": corner, "offset_x_ft": offset_x_ft, "offset_y_ft": offset_y_ft,
+            "offset_x_ft": offset_x_ft, "offset_y_ft": offset_y_ft,
             "picklist_ids": picklist_ids, "plan_only": plan_only,
             "strict_tb": strict_tb, "axis_tol": 0.15 # Hardcoded value
         }
@@ -388,14 +367,43 @@ if __name__ == '__main__':
     uiapp = __revit__
     uidoc = uiapp.ActiveUIDocument
     doc = uidoc.Document
+    
+    # --- MODIFIED: Point selection happens BEFORE the form is shown ---
+    # 1. Check if the active view is a sheet
+    if not isinstance(doc.ActiveView, ViewSheet):
+        TaskDialog.Show(
+            "Align Viewports",
+            "You must run this script from a sheet view. Please open a sheet and try again.",
+            TaskDialogIcon.TaskDialogIconWarning
+        )
+        sys.exit()
 
+    # 2. Prompt user to pick the base point
+    picked_point = None
+    try:
+        picked_point = uidoc.Selection.PickPoint(
+            ObjectSnapTypes.Endpoints | ObjectSnapTypes.Intersections,
+            "Select the base alignment point on the sheet"
+        )
+    except OperationCanceledException:
+        print("Script cancelled by user during point selection.")
+        sys.exit()
+
+    if not picked_point:
+        print("ERROR: No point was selected.")
+        sys.exit()
+
+    # 3. Show the main form
     form = AlignViewsForm(doc)
     if form.ShowDialog() != DialogResult.OK or not form.Values:
         sys.exit()
 
     vals = form.Values
     
-    # Sheet collection is now only from the picklist
+    # --- MODIFIED: Define the final target point using the picked point and offsets ---
+    target_pt = picked_point + XYZ(vals["offset_x_ft"], vals["offset_y_ft"], 0.0)
+
+    # Sheet collection is from the picklist
     picklist_ids = vals["picklist_ids"]
     sheets = [doc.GetElement(eid) for eid in picklist_ids if isinstance(eid, ElementId)]
     sheets = [s for s in sheets if isinstance(s, ViewSheet)]
@@ -410,22 +418,18 @@ if __name__ == '__main__':
     tg.Start()
     try:
         for sheet in sheets:
+            # The check for title blocks is now only for filtering, not for positioning
+            if vals["strict_tb"]:
+                if not get_titleblock_on_sheet(doc, sheet, vals["strict_tb"]):
+                    skipped.append((sheet.SheetNumber, "Missing or multiple title blocks"))
+                    continue
+
             vports = list(FilteredElementCollector(doc, sheet.Id).OfClass(Viewport))
             if not vports:
                 skipped.append((sheet.SheetNumber, "No viewports"))
                 continue
-
-            bb = get_titleblock_bbox_on_sheet(doc, sheet, vals["strict_tb"])
-            if not bb:
-                skipped.append((sheet.SheetNumber, "Missing/Multiple title blocks or invalid bbox"))
-                continue
-
-            base_corner = corner_point_from_bbox(vals["corner"], bb[0], bb[1])
-            if not base_corner:
-                skipped.append((sheet.SheetNumber, "Invalid corner selection"))
-                continue
-
-            target_pt = XYZ(base_corner.X + vals["offset_x_ft"], base_corner.Y + vals["offset_y_ft"], 0.0)
+            
+            # REMOVED: No longer need to calculate base_corner per sheet. target_pt is global.
 
             t = Transaction(doc, "Align viewports on sheet {}".format(sheet.SheetNumber))
             t.Start()
@@ -458,7 +462,6 @@ if __name__ == '__main__':
                     new_center = vp.GetBoxCenter().Add(delta)
                     vp.SetBoxCenter(new_center)
                     aligned_any = True
-                    # Record the specific view, its status, and sheet name for the final report
                     processed_views.append(
                         (view.Name, "Aligned", "{} - {}".format(sheet.SheetNumber, sheet.Name))
                     )
@@ -476,18 +479,16 @@ if __name__ == '__main__':
         tg.RollBack()
         print("FATAL ERROR: An unexpected error occurred: {}".format(e))
 
-    # --- Final Report (MODIFIED to use pyRevit Data Tables) ---
+    # --- Final Report ---
     output = script.get_output()
     output.set_title("Align Viewports Report")
 
     # --- Aligned Views Table ---
     if processed_views:
-        # Sort results by Sheet, then by View Name for better readability
         sorted_processed = sorted(processed_views, key=lambda x: (x[2], x[0]))
         
         aligned_table_data = []
         for view_name, status, sheet_info in sorted_processed:
-            # MODIFIED: Wrap the status in an HTML div for styling
             styled_status = '<div style="color:green; font-weight:bold;">{}</div>'.format(status)
             aligned_table_data.append([sheet_info, view_name, styled_status])
 
@@ -495,12 +496,10 @@ if __name__ == '__main__':
             table_data=aligned_table_data,
             title="Aligned Views ({})".format(len(aligned_table_data)),
             columns=["Sheets", "View Name", "Status"]
-            # MODIFIED: Removed the incorrect 'formats' parameter
         )
 
     # --- Skipped Sheets Table ---
     if skipped:
-        # Ensure skipped items are unique and sorted
         sorted_skipped = sorted(list(set(skipped)))
         output.print_table(
             table_data=sorted_skipped,
