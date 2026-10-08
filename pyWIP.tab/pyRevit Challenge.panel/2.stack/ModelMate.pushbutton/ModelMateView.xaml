@@ -1,0 +1,399 @@
+﻿<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Model Mate"
+    Width="900"
+    Height="650"
+    Background="#F4F4F4"
+    WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+
+        <Style x:Key="RedButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Height" Value="32" />
+
+            <!--  ✅ UNIFORM WIDTH  -->
+            <Setter Property="MinWidth" Value="120" />
+
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="0" />
+
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Offset="0" Color="#FFE06666" />
+                                            <GradientStop Offset="1" Color="#FFCC3333" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Offset="0" Color="#FFB22222" />
+                                            <GradientStop Offset="1" Color="#FF800000" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Offset="0" Color="#FFD94C4C" />
+                        <GradientStop Offset="1" Color="#FFB22A2A" />
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+
+        </Style>
+    </Window.Resources>
+
+    <TabControl>
+
+        <!--  =====================================================  -->
+        <!--  TAB 1: VIEW TEMPLATES (FULL ORIGINAL DESIGN)  -->
+        <!--  =====================================================  -->
+        <TabItem Header="View Templates">
+
+            <Grid Margin="10">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition Width="5" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!--  LEFT PANEL (EXACT ORIGINAL)  -->
+                <GroupBox
+                    Grid.Column="0"
+                    Padding="6"
+                    Header="Available Views">
+
+                    <Grid>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <CheckBox
+                            x:Name="ChkPlacedOnSheets"
+                            Grid.Row="0"
+                            Margin="4"
+                            Content="Only Views Placed on Sheets" />
+
+                        <ListBox
+                            x:Name="ViewListPanel"
+                            Grid.Row="1"
+                            Margin="4"
+                            Background="White" />
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal">
+
+                            <Button
+                                x:Name="BtnSelectAll"
+                                Content="Select All"
+                                Style="{StaticResource RedButtonStyle}" />
+
+                            <Button
+                                x:Name="BtnUnselectAll"
+                                Content="Unselect All"
+                                Style="{StaticResource RedButtonStyle}" />
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </GroupBox>
+
+                <!--  RIGHT PANEL (REPORT EXACT ORIGINAL)  -->
+                <GroupBox Grid.Column="2" Padding="6">
+
+                    <GroupBox.Header>
+                        <TextBlock
+                            x:Name="ReportHeader"
+                            FontWeight="SemiBold"
+                            Text="View Template Report" />
+                    </GroupBox.Header>
+
+                    <Grid>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <CheckBox
+                            x:Name="ChkOnlyMissingTemplates"
+                            Grid.Row="0"
+                            Content="Only Views Without Template" />
+
+                        <ListView
+                            x:Name="ReportGridTemplates"
+                            Grid.Row="1"
+                            Background="White">
+
+                            <ListView.View>
+                                <GridView>
+
+                                    <GridViewColumn Width="60" Header="Apply">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding Select}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <GridViewColumn Width="220" Header="View Name">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <GridViewColumn Width="140" Header="Type">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Type}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <GridViewColumn Width="120" Header="Status">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding HasTemplate}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                    <GridViewColumn Width="220" Header="Template">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding TemplateName}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+
+                                </GridView>
+                            </ListView.View>
+
+                        </ListView>
+                        <StackPanel Grid.Row="2" Orientation="Vertical">
+
+                            <!--  RUN CHECK (PRIMERO / ACCIÓN PRINCIPAL)  -->
+                            <Button
+                                x:Name="BtnRunTemplate"
+                                HorizontalAlignment="Stretch"
+                                Content="Run Check"
+                                Style="{StaticResource RedButtonStyle}" />
+
+                            <!--  ESPACIADO  -->
+                            <Border Height="8" Background="Transparent" />
+
+                            <!--  COMBO + APPLY  -->
+                            <StackPanel Orientation="Horizontal">
+
+                                <ComboBox
+                                    x:Name="GlobalTemplateCombo"
+                                    Width="300"
+                                    Height="26"
+                                    VerticalContentAlignment="Center" />
+
+                                <Button
+                                    x:Name="BtnApplyTemplate"
+                                    Content="Apply Template"
+                                    Style="{StaticResource RedButtonStyle}" />
+
+                            </StackPanel>
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </GroupBox>
+
+            </Grid>
+
+        </TabItem>
+
+        <!--  =====================================================  -->
+        <!--  TAB 2: MATERIALS (FULL ORIGINAL DESIGN)  -->
+        <!--  =====================================================  -->
+        <TabItem Header="Materials">
+
+            <Grid Margin="10">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!--  TOP FILTER (RESTORED  -->
+                <Border
+                    Grid.Row="0"
+                    Padding="10"
+                    Background="White">
+
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+
+                        <!--  CHECK  -->
+                        <CheckBox
+                            x:Name="FilterByCategory"
+                            Margin="0,0,10,0"
+                            VerticalAlignment="Center"
+                            Content="Filter Category" />
+
+                        <!--  CATEGORY  -->
+                        <ComboBox
+                            x:Name="CategoryFilter"
+                            Width="160"
+                            Height="26"
+                            Margin="0,0,10,0"
+                            VerticalContentAlignment="Center"
+                            IsEnabled="False" />
+
+                        <!--  SEARCH  -->
+                        <TextBox
+                            x:Name="MaterialSearch"
+                            Width="180"
+                            Height="26"
+                            Margin="0,0,10,0"
+                            VerticalContentAlignment="Center" />
+
+                        <!--  SIMPLE LABEL  -->
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontWeight="SemiBold"
+                            Foreground="#777"
+                            Text="Filter Material" />
+
+                    </StackPanel>
+
+                </Border>
+
+                <!--  GRID  -->
+                <ListView
+                    x:Name="ReportGridMaterials"
+                    Grid.Row="1"
+                    Margin="4"
+                    Background="White">
+
+                    <ListView.View>
+                        <GridView>
+
+                            <GridViewColumn Width="40" Header="✓">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Select}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Width="120" Header="Category">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Category}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Width="180" Header="Type">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TypeName}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Width="180" Header="Material">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Material}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Width="60" Header="Count">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Count}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                        </GridView>
+                    </ListView.View>
+
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasConflict}" Value="True">
+                                    <Setter Property="Background" Value="#D9F7D9" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+
+                </ListView>
+
+
+                <!--  BOTTOM (RESTORED FULL)  -->
+                <Border
+                    Grid.Row="2"
+                    Padding="10"
+                    Background="White">
+
+                    <StackPanel Orientation="Horizontal">
+
+                        <ComboBox x:Name="MaterialCombo" Width="300" />
+
+                        <Button
+                            x:Name="BtnApplyMaterial"
+                            Content="Apply Material"
+                            Style="{StaticResource RedButtonStyle}" />
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+        </TabItem>
+
+    </TabControl>
+
+</Window>

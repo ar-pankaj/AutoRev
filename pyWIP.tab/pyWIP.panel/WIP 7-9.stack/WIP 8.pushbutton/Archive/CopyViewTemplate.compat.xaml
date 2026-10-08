@@ -1,0 +1,287 @@
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Name="UI_Main"
+    Title="Load View Templates From Link"
+    Height="650" Width="450"
+    MinHeight="650" MinWidth="450"
+    MaxHeight="650" MaxWidth="450"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="None" ResizeMode="NoResize"
+    ShowInTaskbar="True" AllowsTransparency="True"
+    Background="Transparent">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="HeaderBg" Color="#D7DCE2"/>
+        <SolidColorBrush x:Key="MainBg" Color="#E8EAED"/>
+        <SolidColorBrush x:Key="PanelBg" Color="#F2F3F5"/>
+        <SolidColorBrush x:Key="InputBg" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextMain" Color="#111111"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#667085"/>
+        <SolidColorBrush x:Key="BrandBlue" Color="#2589BD"/>
+        <SolidColorBrush x:Key="ButtonNormal" Color="#2563A6"/>
+        <SolidColorBrush x:Key="ButtonHover" Color="#16A34A"/>
+        <SolidColorBrush x:Key="ButtonPressed" Color="#0F7A35"/>
+        <SolidColorBrush x:Key="BorderBlue" Color="#2589BD"/>
+        <SolidColorBrush x:Key="BorderGreen" Color="#22A447"/>
+        <SolidColorBrush x:Key="HoverBg" Color="#DDECF2"/>
+        <SolidColorBrush x:Key="SelectedBg" Color="#CDEED8"/>
+        <SolidColorBrush x:Key="DisabledBg" Color="#B8C0C8"/>
+        <SolidColorBrush x:Key="DisabledText" Color="#707A85"/>
+
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMain}"/>
+        </Style>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="5,4"/>
+        </Style>
+        <Style x:Key="BrandText" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{StaticResource BrandBlue}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="TitleText" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="StatusText" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{StaticResource ButtonNormal}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBlue}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{StaticResource ButtonHover}"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{StaticResource BorderGreen}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{StaticResource ButtonPressed}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{StaticResource DisabledBg}"/>
+                                <Setter Property="Foreground" Value="{StaticResource DisabledText}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SearchBox" TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="{StaticResource InputBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBlue}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="InputBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="InputBorder" Property="BorderBrush" Value="{StaticResource BorderGreen}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="InputBorder" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LinkCombo" TargetType="{x:Type ComboBox}">
+            <Setter Property="Background" Value="{StaticResource InputBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBlue}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="Padding" Value="7,3"/>
+        </Style>
+
+        <Style x:Key="OverrideCheckBoxStyle" TargetType="{x:Type CheckBox}">
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMain}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style x:Key="TemplateCheckBoxStyle" TargetType="{x:Type CheckBox}">
+            <Setter Property="Foreground" Value="{StaticResource TextMain}"/>
+            <Setter Property="Background" Value="{StaticResource InputBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBlue}"/>
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type CheckBox}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border x:Name="CheckBorder" Width="15" Height="15" HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="2" CornerRadius="3">
+                                <Path x:Name="CheckMark" Width="9" Height="7" Stroke="White" StrokeThickness="2"
+                                      Visibility="Collapsed" Data="M 0 3 L 3 6 L 9 0"/>
+                            </Border>
+                            <ContentPresenter Grid.Column="1" Margin="4,0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource BorderGreen}"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource BorderGreen}"/>
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TemplateListBoxStyle" TargetType="{x:Type ListBox}">
+            <Setter Property="Background" Value="{StaticResource PanelBg}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
+            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
+        </Style>
+        <Style x:Key="TemplateListItem" TargetType="{x:Type ListBoxItem}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource HoverBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource SelectedBg}"/>
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource BorderGreen}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{StaticResource MainBg}" BorderBrush="{StaticResource BorderGreen}"
+            BorderThickness="1" CornerRadius="14">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/><RowDefinition Height="27"/></Grid.RowDefinitions>
+            <Border Grid.Row="0" Background="{StaticResource HeaderBg}" BorderBrush="{StaticResource BorderGreen}"
+                    BorderThickness="0,0,0,1" CornerRadius="13,13,0,0" MouseDown="header_drag">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="90"/><ColumnDefinition Width="*"/><ColumnDefinition Width="65"/></Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Style="{StaticResource BrandText}" Text="pyRevix" Margin="8,0,0,0"/>
+                    <TextBlock x:Name="main_title" Grid.Column="1" Style="{StaticResource TitleText}" Text="Load View Templates From Link"/>
+                    <Button Grid.Column="2" Content="Close" Width="58" Height="21" Margin="0,0,5,0"
+                            HorizontalAlignment="Right" VerticalAlignment="Center" Click="button_close"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" Margin="12,10,12,8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="18"/><RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Label Grid.Row="0" Content="1. Select Source Revit Link:"/>
+                <ComboBox x:Name="UI_LinkSource" Grid.Row="1" Style="{StaticResource LinkCombo}" Margin="5,0"
+                          SelectionChanged="UIe_ComboBox_Changed"/>
+                <CheckBox x:Name="UI_check_override" Grid.Row="2" Style="{StaticResource OverrideCheckBoxStyle}"
+                          Content="Override Existing View Templates" IsChecked="True" Margin="5,7,5,1"/>
+                <Separator Grid.Row="3" Margin="5,7,5,4" Background="{StaticResource BorderGreen}"/>
+
+                <Grid x:Name="UI_Stack_ViewTemplates" Grid.Row="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Label Grid.Row="0" Content="2. Select View Templates From Link:"/>
+                    <DockPanel Grid.Row="1" Margin="5,0,5,6">
+                        <TextBlock Text="Search" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox x:Name="UI_TextBox_Filter" Style="{StaticResource SearchBox}" Height="27"
+                                 TextChanged="UIe_text_filter_updated"/>
+                    </DockPanel>
+                    <Border Grid.Row="2" Margin="5,0" Background="{StaticResource PanelBg}"
+                            BorderBrush="{StaticResource BorderGreen}" BorderThickness="1" CornerRadius="9" ClipToBounds="True">
+                        <ListBox x:Name="UI_ListBox_ViewTemplates" Style="{StaticResource TemplateListBoxStyle}"
+                                 ItemContainerStyle="{StaticResource TemplateListItem}" Margin="4" SelectionChanged="UIe_template_selection_changed"/>
+                    </Border>
+                    <TextBlock x:Name="UI_TemplateCount" Grid.Row="3" Style="{StaticResource StatusText}"
+                               Text="Select a loaded link to display templates." Margin="8,5,5,1"/>
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Select All" Width="105" Height="25" Margin="5" Click="UIe_btn_select_all"/>
+                        <Button Content="Select None" Width="105" Height="25" Margin="5" Click="UIe_btn_select_none"/>
+                    </StackPanel>
+                    <Button x:Name="UI_btn_Run" Grid.Row="5" Content="Transfer Selected Templates"
+                            Width="240" Height="32" Margin="0,4,0,0" HorizontalAlignment="Center"
+                            IsEnabled="False" Click="UIe_btn_run"/>
+                    <Border Grid.Row="6" Margin="5,8,5,0" Background="{StaticResource PanelBg}"
+                            BorderBrush="{StaticResource BorderGreen}" BorderThickness="1" CornerRadius="8">
+                        <StackPanel Margin="8,6">
+                            <TextBlock Text="Warning" FontSize="11" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource StatusText}" Margin="0,2,0,0"
+                                       Text="View Templates may transfer dependent filters, parameters and other settings."/>
+                            <TextBlock Style="{StaticResource StatusText}"
+                                       Text="Review imported templates before applying them across the project."/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <Border Grid.Row="2" Background="{StaticResource HeaderBg}" BorderBrush="{StaticResource BorderGreen}"
+                    BorderThickness="0,1,0,0" CornerRadius="0,0,13,13">
+                <TextBlock x:Name="footer_version" Style="{StaticResource StatusText}"
+                           Text="Version 2.0" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="10"/>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

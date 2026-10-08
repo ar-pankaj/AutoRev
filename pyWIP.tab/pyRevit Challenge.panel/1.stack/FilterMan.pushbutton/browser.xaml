@@ -1,0 +1,871 @@
+<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="FilterMan"
+    Width="660"
+    MinWidth="660"
+    Height="780"
+    MinHeight="560"
+    ResizeMode="CanResize"
+    WindowStartupLocation="CenterScreen"
+    ShowInTaskbar="True"
+    Topmost="False"
+    FontFamily="Segoe UI">
+
+  <Window.Resources>
+    <!-- ── Brushes ── -->
+    <SolidColorBrush x:Key="BgBrush"          Color="#F0F0F0"/>
+    <SolidColorBrush x:Key="SurfaceBrush"     Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Surface2Brush"    Color="#F5F7FA"/>
+    <SolidColorBrush x:Key="Surface3Brush"    Color="#E8E8E8"/>
+    <SolidColorBrush x:Key="BorderBrush"      Color="#D0D0D0"/>
+    <SolidColorBrush x:Key="Border2Brush"     Color="#B0B0B0"/>
+    <SolidColorBrush x:Key="TextBrush"        Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="Text2Brush"       Color="#555555"/>
+    <SolidColorBrush x:Key="Text3Brush"       Color="#999999"/>
+    <SolidColorBrush x:Key="AccentBrush"      Color="#0696D7"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#047DB8"/>
+    <SolidColorBrush x:Key="AccentLiteBrush"  Color="#E8F4FB"/>
+    <SolidColorBrush x:Key="DangerBrush"      Color="#C0392B"/>
+    <SolidColorBrush x:Key="OkBrush"          Color="#27AE60"/>
+    <SolidColorBrush x:Key="CkBgBrush"        Color="#C8F0D8"/>
+    <SolidColorBrush x:Key="RvBgBrush"        Color="#D0E8F8"/>
+    <SolidColorBrush x:Key="CatBgBrush"       Color="#E8EEF4"/>
+    <SolidColorBrush x:Key="FamBgBrush"       Color="#F5F7FA"/>
+
+    <!-- ── Button implicit style: rounded corners via ControlTemplate ── -->
+    <Style TargetType="Button">
+      <Setter Property="Height"              Value="24"/>
+      <Setter Property="Padding"             Value="6,0"/>
+      <Setter Property="Background"          Value="{DynamicResource SurfaceBrush}"/>
+      <Setter Property="BorderBrush"         Value="{DynamicResource BorderBrush}"/>
+      <Setter Property="BorderThickness"     Value="1"/>
+      <Setter Property="Foreground"          Value="{DynamicResource TextBrush}"/>
+      <Setter Property="FontSize"            Value="11"/>
+      <Setter Property="FontFamily"          Value="Segoe UI"/>
+      <Setter Property="Cursor"              Value="Hand"/>
+      <Setter Property="SnapsToDevicePixels" Value="True"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="3"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="bd" Property="Opacity" Value="0.7"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- ── ToggleButton implicit style: rounded corners via ControlTemplate ── -->
+    <Style TargetType="ToggleButton">
+      <Setter Property="Height"          Value="22"/>
+      <Setter Property="Padding"         Value="6,0"/>
+      <Setter Property="Background"      Value="Transparent"/>
+      <Setter Property="BorderBrush"     Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Foreground"      Value="{DynamicResource Text2Brush}"/>
+      <Setter Property="FontSize"        Value="10"/>
+      <Setter Property="FontFamily"      Value="Segoe UI"/>
+      <Setter Property="Cursor"          Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="3"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="bd" Property="Background"
+                        Value="{DynamicResource AccentLiteBrush}"/>
+                <Setter TargetName="bd" Property="BorderBrush"
+                        Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="bd" Property="BorderThickness" Value="1"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+          <Setter Property="FontWeight" Value="SemiBold"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+
+    <!-- ── Tree toolbar "Checked Only" toggle ── -->
+    <Style x:Key="CheckedOnlyToggleStyle" TargetType="ToggleButton">
+      <Setter Property="Height"          Value="22"/>
+      <Setter Property="Padding"         Value="6,0"/>
+      <Setter Property="Background"      Value="Transparent"/>
+      <Setter Property="BorderBrush"     Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Foreground"      Value="{DynamicResource Text2Brush}"/>
+      <Setter Property="FontSize"        Value="10"/>
+      <Setter Property="FontFamily"      Value="Segoe UI"/>
+      <Setter Property="Cursor"          Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="3"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="bd" Property="Background"
+                        Value="{DynamicResource AccentBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter Property="FontWeight" Value="SemiBold"/>
+          <Setter Property="Foreground" Value="White"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- ── Advanced panel scope toggle buttons ── -->
+    <Style x:Key="ScopeToggleStyle" TargetType="ToggleButton">
+      <Setter Property="Height"          Value="26"/>
+      <Setter Property="Padding"         Value="10,3"/>
+      <Setter Property="Background"      Value="Transparent"/>
+      <Setter Property="BorderBrush"     Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Foreground"      Value="{DynamicResource Text2Brush}"/>
+      <Setter Property="FontSize"        Value="10"/>
+      <Setter Property="FontFamily"      Value="Segoe UI"/>
+      <Setter Property="Cursor"          Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="Transparent"
+                    BorderThickness="0"
+                    CornerRadius="3"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#0696D7"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter Property="Foreground" Value="White"/>
+          <Setter Property="FontWeight" Value="SemiBold"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- ── CheckBox implicit style: 13×13 square indicator, accent fill ── -->
+    <Style TargetType="CheckBox">
+      <Setter Property="Cursor"                   Value="Hand"/>
+      <Setter Property="SnapsToDevicePixels"       Value="True"/>
+      <Setter Property="VerticalContentAlignment"  Value="Center"/>
+      <Setter Property="FontSize"                  Value="11"/>
+      <Setter Property="FontFamily"                Value="Segoe UI"/>
+      <Setter Property="Foreground"                Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <Border x:Name="box"
+                      Width="13" Height="13"
+                      CornerRadius="3"
+                      Background="White"
+                      BorderBrush="#B0B0B0"
+                      BorderThickness="1"
+                      SnapsToDevicePixels="True"
+                      Margin="0,0,5,0">
+                <Grid>
+                  <TextBlock x:Name="check_mark"
+                             Text="&#10003;"
+                             FontSize="9" FontFamily="Segoe UI"
+                             Foreground="White"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center"
+                             Visibility="Collapsed"/>
+                  <Border x:Name="indet_mark"
+                          Width="7" Height="2"
+                          Background="White"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Visibility="Collapsed"/>
+                </Grid>
+              </Border>
+              <ContentPresenter VerticalAlignment="Center"
+                                RecognizesAccessKey="True"/>
+            </StackPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="box"        Property="Background"  Value="#0696D7"/>
+                <Setter TargetName="box"        Property="BorderBrush" Value="#0696D7"/>
+                <Setter TargetName="check_mark" Property="Visibility"  Value="Visible"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="{x:Null}">
+                <Setter TargetName="box"        Property="Background"  Value="#E8F4FB"/>
+                <Setter TargetName="box"        Property="BorderBrush" Value="#0696D7"/>
+                <Setter TargetName="indet_mark" Property="Visibility"  Value="Visible"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="RadioButton">
+      <Setter Property="FontSize"   Value="10"/>
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ── Themed ScrollBar — responds to DynamicResource palette ── -->
+    <Style TargetType="ScrollBar">
+      <Setter Property="Width"    Value="8"/>
+      <Setter Property="MinWidth" Value="8"/>
+      <Setter Property="Background" Value="{DynamicResource Surface2Brush}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Grid Background="{TemplateBinding Background}">
+              <Track x:Name="PART_Track"
+                     IsDirectionReversed="True"
+                     Focusable="False">
+                <Track.DecreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.PageUpCommand"
+                                Opacity="0" Focusable="False"/>
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                  <Thumb Focusable="False">
+                    <Thumb.Template>
+                      <ControlTemplate TargetType="Thumb">
+                        <Border CornerRadius="4"
+                                Background="{DynamicResource Border2Brush}"
+                                Margin="2,2"/>
+                      </ControlTemplate>
+                    </Thumb.Template>
+                  </Thumb>
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                  <RepeatButton Command="ScrollBar.PageDownCommand"
+                                Opacity="0" Focusable="False"/>
+                </Track.IncreaseRepeatButton>
+              </Track>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       ROOT: Header (Auto) | Body (*) | Shimmer (3px)
+  ══════════════════════════════════════════════════════════════ -->
+  <Grid Background="{DynamicResource BgBrush}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>  <!-- 0: App Header -->
+      <RowDefinition Height="*"/>     <!-- 1: Body -->
+      <RowDefinition Height="3"/>     <!-- 2: Shimmer -->
+    </Grid.RowDefinitions>
+
+    <!-- ══════════════════════════════════════
+         ROW 0 - APP HEADER
+    ══════════════════════════════════════ -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource Surface3Brush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="12,6">
+      <DockPanel LastChildFill="False">
+
+        <Image x:Name="img_logo"
+               DockPanel.Dock="Left"
+               Width="22" Height="22"
+               Margin="0,0,8,0"
+               VerticalAlignment="Center"
+               RenderOptions.BitmapScalingMode="HighQuality"
+               Stretch="Uniform"/>
+
+        <TextBlock DockPanel.Dock="Left"
+                   Text="FilterMan"
+                   FontWeight="SemiBold" FontSize="14"
+                   Foreground="{DynamicResource TextBrush}"
+                   VerticalAlignment="Center"/>
+
+        <StackPanel DockPanel.Dock="Right"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Center">
+          <CheckBox x:Name="cb_active_view"
+                    Content="Active View"
+                    IsChecked="True"
+                    Foreground="{DynamicResource Text2Brush}"
+                    Margin="0,0,6,0"/>
+          <CheckBox x:Name="cb_always_on_top"
+                    Content="Always on Top"
+                    IsChecked="False"
+                    Foreground="{DynamicResource Text2Brush}"
+                    Margin="0,0,6,0"/>
+          <Button x:Name="btn_theme"
+                  Content="&#9728; / &#9790;"
+                  FontFamily="Segoe UI Symbol"
+                  Width="48"
+                  Margin="0,0,4,0"/>
+          <Button x:Name="btn_refresh"
+                  Content="Refresh"
+                  Width="70"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ══════════════════════════════════════
+         ROW 1 - BODY (main | splitter | adv)
+    ══════════════════════════════════════ -->
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition x:Name="col_main"     Width="*"   MinWidth="460"/>
+        <ColumnDefinition x:Name="col_splitter" Width="Auto"/>
+        <ColumnDefinition x:Name="col_adv"      Width="0"   MinWidth="0"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- ─────────────────────────────────
+           MAIN PANEL — 6 rows
+      ───────────────────────────────── -->
+      <Grid Grid.Column="0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>   <!-- 0: Quick Search -->
+          <RowDefinition Height="Auto"/>   <!-- 1: Tree Toolbar -->
+          <RowDefinition Height="*"/>      <!-- 2: Tree         -->
+          <RowDefinition Height="Auto"/>   <!-- 3: Action Row   -->
+          <RowDefinition Height="Auto"/>   <!-- 4: Status Bar   -->
+          <RowDefinition Height="Auto"/>   <!-- 5: Bottom Bar   -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Quick Search (Row 0) ── -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="8">
+          <StackPanel>
+            <Grid Margin="0,0,0,5">
+              <TextBox x:Name="txt_search"
+                       Height="26"
+                       Padding="26,0,24,0"
+                       Background="{DynamicResource Surface2Brush}"
+                       BorderBrush="{DynamicResource BorderBrush}"
+                       Foreground="{DynamicResource TextBrush}"
+                       FontSize="12"
+                       VerticalContentAlignment="Center"/>
+              <!-- Placeholder: text set dynamically in Python via _update_search_placeholder -->
+              <TextBlock x:Name="txt_placeholder"
+                         Text=""
+                         Foreground="{DynamicResource Text3Brush}"
+                         FontSize="12"
+                         Margin="28,0,0,0"
+                         VerticalAlignment="Center"
+                         IsHitTestVisible="False"/>
+              <TextBlock Text="&#128269;"
+                         FontSize="12"
+                         Margin="7,0,0,0"
+                         VerticalAlignment="Center"
+                         HorizontalAlignment="Left"
+                         IsHitTestVisible="False"
+                         Foreground="{DynamicResource Text3Brush}"/>
+              <Button x:Name="btn_search_clear"
+                      Content="&#10005;"
+                      Width="18" Height="18"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Center"
+                      Margin="0,0,5,0"
+                      Panel.ZIndex="1"
+                      Foreground="{DynamicResource Text2Brush}"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      Visibility="Collapsed"
+                      Cursor="Hand"
+                      Padding="0"/>
+            </Grid>
+            <WrapPanel Orientation="Horizontal">
+              <TextBlock Text="Search in:"
+                         FontSize="10"
+                         Foreground="{DynamicResource Text3Brush}"
+                         VerticalAlignment="Center"
+                         Margin="0,0,8,0"/>
+              <CheckBox x:Name="cb_scope_family"
+                        Content="Family"
+                        IsChecked="True"
+                        Margin="0,0,4,0"/>
+              <CheckBox x:Name="cb_scope_type"
+                        Content="Type"
+                        IsChecked="True"
+                        Margin="0,0,4,0"/>
+              <CheckBox x:Name="cb_scope_paramname"
+                        Content="Param Name"
+                        Margin="0,0,4,0"/>
+              <CheckBox x:Name="cb_scope_paramval"
+                        Content="Param Value"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- ── Tree Toolbar (Row 1) ── -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource Surface2Brush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="8,3">
+          <StackPanel Orientation="Horizontal">
+            <Button x:Name="btn_expand_all"
+                    Content="Expand All"
+                    Height="22" FontSize="10" Padding="6,0"
+                    Background="Transparent" BorderThickness="0"/>
+            <Button x:Name="btn_collapse_all"
+                    Content="Collapse All"
+                    Height="22" FontSize="10" Padding="6,0" Margin="2,0,0,0"
+                    Background="Transparent" BorderThickness="0"/>
+            <Rectangle Width="1" Fill="{DynamicResource BorderBrush}" Margin="3,3"/>
+            <Button x:Name="btn_select_all"
+                    Content="Select All"
+                    Height="22" FontSize="10" Padding="6,0"
+                    Background="Transparent" BorderThickness="0"/>
+            <Button x:Name="btn_deselect_all"
+                    Content="Deselect All"
+                    Height="22" FontSize="10" Padding="6,0" Margin="2,0,0,0"
+                    Background="Transparent" BorderThickness="0"/>
+            <Rectangle Width="1" Fill="{DynamicResource BorderBrush}" Margin="3,3"/>
+            <ToggleButton x:Name="btn_checked_only"
+                          Content="Checked Only"
+                          FontSize="10"
+                          Style="{StaticResource CheckedOnlyToggleStyle}"/>
+          </StackPanel>
+        </Border>
+
+        <!-- ── Tree (Row 2) ── -->
+        <ScrollViewer Grid.Row="2"
+                      x:Name="tree_scroll"
+                      Background="{DynamicResource SurfaceBrush}"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto"
+                      BorderThickness="0">
+          <StackPanel x:Name="tree_items"
+                      Background="{DynamicResource SurfaceBrush}"
+                      HorizontalAlignment="Stretch"/>
+        </ScrollViewer>
+
+        <!-- ── Action Row (Row 3) ── -->
+        <Border Grid.Row="3"
+                Background="{DynamicResource Surface3Brush}"
+                BorderBrush="{DynamicResource Border2Brush}"
+                BorderThickness="0,2,0,0"
+                Padding="8,6">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>    <!-- Isolate       -->
+              <ColumnDefinition Width="*"/>    <!-- Temp Hide     -->
+              <ColumnDefinition Width="*"/>    <!-- Color         -->
+              <ColumnDefinition Width="*"/>    <!-- Selection Box -->
+              <ColumnDefinition Width="*"/>    <!-- Reset All     -->
+              <ColumnDefinition Width="Auto"/> <!-- sep           -->
+              <ColumnDefinition Width="Auto"/> <!-- In View       -->
+              <ColumnDefinition Width="Auto"/> <!-- In Project    -->
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="btn_isolate"    Content="Isolate"       Grid.Column="0"/>
+            <Button x:Name="btn_temp_hide"  Content="Temp. Hide"    Grid.Column="1" Margin="3,0,0,0"/>
+            <Button x:Name="btn_color"      Content="Color"         Grid.Column="2" Margin="3,0,0,0"
+                    ToolTip="Apply colour override + Solid Fill surface pattern to checked elements"/>
+            <Button x:Name="btn_selbox"     Content="Selection Box" Grid.Column="3" Margin="3,0,0,0"/>
+            <Button x:Name="btn_reset_all"  Content="Reset All"     Grid.Column="4" Margin="3,0,0,0"/>
+            <Rectangle Grid.Column="5" Width="1"
+                       Fill="{DynamicResource Border2Brush}" Margin="4,2"/>
+            <Button x:Name="btn_sel_inview" Content="In View"       Grid.Column="6" Margin="4,0,0,0" Padding="12,0"/>
+            <Button x:Name="btn_sel_inproj" Content="In Project"    Grid.Column="7" Margin="3,0,0,0" Padding="12,0"/>
+          </Grid>
+        </Border>
+
+        <!-- ── Status Bar (Row 4) ──
+             Left section Width=152px aligns divider with gap between
+             btn_save_json (150px) and btn_load_json (150px) at 8px padding. -->
+        <Border Grid.Row="4"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="0,6">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="152"/>
+              <ColumnDefinition Width="1"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: N checked in tree -->
+            <StackPanel Grid.Column="0"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0">
+              <TextBlock x:Name="txt_checked_count"
+                         Text="0"
+                         FontSize="15" FontWeight="Bold"
+                         Foreground="{DynamicResource OkBrush}"/>
+              <TextBlock Text=" checked in tree"
+                         FontSize="11"
+                         Foreground="{DynamicResource Text2Brush}"
+                         VerticalAlignment="Center" Margin="3,0,0,0"/>
+            </StackPanel>
+
+            <!-- Divider -->
+            <Rectangle Grid.Column="1"
+                       Width="1" Height="22"
+                       Fill="{DynamicResource Border2Brush}"
+                       VerticalAlignment="Center"/>
+
+            <!-- Right: N selected in Revit + sync buttons -->
+            <DockPanel Grid.Column="2" LastChildFill="True">
+              <StackPanel DockPanel.Dock="Right"
+                          Orientation="Horizontal"
+                          VerticalAlignment="Center"
+                          Margin="0,0,8,0">
+                <Button x:Name="btn_check_from_revit"
+                        Content="Check from Revit"
+                        Width="148" Margin="6,0,0,0"/>
+                <Button x:Name="btn_select_in_revit"
+                        Content="Select in Revit"
+                        Width="148" Margin="6,0,0,0"/>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal"
+                          VerticalAlignment="Center"
+                          Margin="10,0,0,0">
+                <TextBlock x:Name="txt_revit_count"
+                           Text="0"
+                           FontSize="15" FontWeight="Bold"
+                           Foreground="{DynamicResource AccentBrush}"/>
+                <TextBlock Text=" selected in Revit"
+                           FontSize="11"
+                           Foreground="{DynamicResource Text2Brush}"
+                           VerticalAlignment="Center" Margin="3,0,0,0"/>
+              </StackPanel>
+            </DockPanel>
+          </Grid>
+        </Border>
+
+        <!-- ── Bottom Bar (Row 5) ── -->
+        <Border Grid.Row="5"
+                Height="34"
+                Background="{DynamicResource Surface2Brush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="8,0">
+          <DockPanel LastChildFill="False" VerticalAlignment="Center">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+              <Button x:Name="btn_save_json"
+                      Content="Save Checked - JSON"
+                      Width="150" Height="26"
+                      Foreground="{DynamicResource OkBrush}"
+                      BorderBrush="{DynamicResource OkBrush}"/>
+              <Button x:Name="btn_load_json"
+                      Content="Load JSON"
+                      Width="150" Height="26"
+                      Margin="4,0,0,0"/>
+            </StackPanel>
+            <Button x:Name="btn_toggle_adv"
+                    DockPanel.Dock="Right"
+                    Content="Advanced - Filter Table &amp; Excel &#9658;"
+                    Height="26"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Foreground="{DynamicResource AccentBrush}"
+                    FontWeight="SemiBold"
+                    Padding="10,0"/>
+          </DockPanel>
+        </Border>
+      </Grid>
+      <!-- /MAIN PANEL -->
+
+      <!-- ─────────────────────────────────
+           GRID SPLITTER
+      ───────────────────────────────── -->
+      <GridSplitter x:Name="grid_splitter"
+                    Grid.Column="1"
+                    Width="5"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="{DynamicResource BorderBrush}"
+                    Visibility="Collapsed"/>
+
+      <!-- ─────────────────────────────────
+           ADVANCED PANEL — 5 rows
+      ───────────────────────────────── -->
+      <Grid x:Name="adv_panel"
+            Grid.Column="2"
+            Background="{DynamicResource SurfaceBrush}"
+            Visibility="Collapsed">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>   <!-- 0: Header + scope toggles + scope text -->
+          <RowDefinition Height="Auto"/>   <!-- 1: QB section -->
+          <RowDefinition Height="Auto"/>   <!-- 2: Table top bar -->
+          <RowDefinition Height="*"/>      <!-- 3: DataGrid -->
+          <RowDefinition Height="Auto"/>   <!-- 4: Excel section -->
+        </Grid.RowDefinitions>
+
+        <!-- Advanced Header (Row 0) -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource Surface3Brush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1,0,0,1"
+                Padding="12,6">
+          <DockPanel LastChildFill="True">
+            <StackPanel DockPanel.Dock="Right"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="8,0,0,0">
+              <ToggleButton x:Name="btn_scope_checked"
+                            Content="Checked items"
+                            IsChecked="True"
+                            Style="{StaticResource ScopeToggleStyle}"/>
+              <ToggleButton x:Name="btn_scope_all"
+                            Content="All elements"
+                            Style="{StaticResource ScopeToggleStyle}"
+                            Margin="2,0,0,0"/>
+            </StackPanel>
+            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+              <TextBlock Text="Advanced - Filter Table &amp; Excel"
+                         FontWeight="Bold" FontSize="12"
+                         Foreground="{DynamicResource TextBrush}"/>
+              <TextBlock x:Name="txt_adv_scope"
+                         Text="Scope: 0 checked elements - build conditions below, then Apply"
+                         FontSize="10"
+                         Foreground="{DynamicResource Text2Brush}"
+                         Margin="0,2,0,0"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <!-- QB section (Row 1) -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource Surface2Brush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1,0,0,1"
+                Padding="12,6">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,5" LastChildFill="True">
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="btn_qb_clear" Content="Clear Filters" Width="90"/>
+                <Button x:Name="btn_qb_apply"
+                        Content="Apply"
+                        Width="70" Margin="4,0,0,0"
+                        Background="{DynamicResource AccentBrush}"
+                        Foreground="White"
+                        BorderBrush="{DynamicResource AccentBrush}"/>
+              </StackPanel>
+              <TextBlock Text="Filter Conditions"
+                         FontWeight="SemiBold" FontSize="11"
+                         Foreground="{DynamicResource TextBrush}"
+                         VerticalAlignment="Center"/>
+            </DockPanel>
+            <StackPanel x:Name="qb_conditions_panel"/>
+            <Button x:Name="btn_qb_add_condition"
+                    Background="Transparent"
+                    Foreground="{DynamicResource AccentBrush}"
+                    HorizontalAlignment="Left"
+                    FontSize="10" Height="22" Margin="0,4,0,0">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <Grid>
+                    <Rectangle StrokeDashArray="4,2"
+                               Stroke="{DynamicResource AccentBrush}"
+                               StrokeThickness="1"
+                               RadiusX="3" RadiusY="3"
+                               Fill="Transparent"/>
+                    <ContentPresenter HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="8,3"/>
+                  </Grid>
+                </ControlTemplate>
+              </Button.Template>
+              + Add Condition
+            </Button>
+          </StackPanel>
+        </Border>
+
+        <!-- Table top bar (Row 2) -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource Surface2Brush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1,0,0,1"
+                Padding="12,5,12,4">
+          <DockPanel>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock x:Name="txt_table_count"
+                         Text="0"
+                         FontWeight="Bold" FontSize="11"
+                         Foreground="{DynamicResource TextBrush}"
+                         VerticalAlignment="Center"/>
+              <TextBlock Text=" elements"
+                         FontSize="10"
+                         Foreground="{DynamicResource Text2Brush}"
+                         VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button x:Name="btn_add_column"
+                    DockPanel.Dock="Right"
+                    Background="Transparent"
+                    Foreground="{DynamicResource AccentBrush}"
+                    HorizontalAlignment="Right"
+                    FontSize="10" Height="22">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <Grid>
+                    <Rectangle StrokeDashArray="4,2"
+                               Stroke="{DynamicResource AccentBrush}"
+                               StrokeThickness="1"
+                               RadiusX="3" RadiusY="3"
+                               Fill="Transparent"/>
+                    <ContentPresenter HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="8,3"/>
+                  </Grid>
+                </ControlTemplate>
+              </Button.Template>
+              + Add Column
+            </Button>
+          </DockPanel>
+        </Border>
+
+        <!-- DataGrid (Row 3) -->
+        <DataGrid x:Name="data_grid"
+                  Grid.Row="3"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserSortColumns="True"
+                  IsReadOnly="False"
+                  SelectionMode="Extended"
+                  GridLinesVisibility="All"
+                  HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                  VerticalGridLinesBrush="{DynamicResource BorderBrush}"
+                  HeadersVisibility="Column"
+                  Background="{DynamicResource SurfaceBrush}"
+                  RowBackground="{DynamicResource SurfaceBrush}"
+                  AlternatingRowBackground="{DynamicResource Surface2Brush}"
+                  Foreground="{DynamicResource TextBrush}"
+                  FontSize="11" FontFamily="Segoe UI"
+                  BorderBrush="{DynamicResource BorderBrush}"
+                  BorderThickness="1,0,0,0">
+          <DataGrid.ColumnHeaderStyle>
+            <Style TargetType="DataGridColumnHeader">
+              <Setter Property="Background"      Value="{DynamicResource Surface3Brush}"/>
+              <Setter Property="Foreground"      Value="{DynamicResource TextBrush}"/>
+              <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
+              <Setter Property="BorderThickness" Value="0,0,1,1"/>
+              <Setter Property="Padding"         Value="6,3"/>
+              <Setter Property="FontWeight"      Value="SemiBold"/>
+              <Setter Property="FontFamily"      Value="Segoe UI"/>
+              <Setter Property="FontSize"        Value="11"/>
+            </Style>
+          </DataGrid.ColumnHeaderStyle>
+        </DataGrid>
+
+        <!-- Excel section (Row 4) -->
+        <Border Grid.Row="4"
+                Background="{DynamicResource Surface3Brush}"
+                BorderBrush="{DynamicResource Border2Brush}"
+                BorderThickness="1,2,0,0"
+                Padding="12,7">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Left" Width="112" Margin="0,0,10,0">
+              <Button x:Name="btn_import_excel"
+                      Content="Import Excel"
+                      Background="{DynamicResource AccentBrush}"
+                      Foreground="White"
+                      BorderBrush="{DynamicResource AccentBrush}"
+                      FontWeight="SemiBold"
+                      Height="Auto" Padding="0,5"/>
+              <Button x:Name="btn_overwrite_excel"
+                      Content="Overwrite Data"
+                      Background="#9E9E9E"
+                      Foreground="White"
+                      BorderBrush="#9E9E9E"
+                      FontWeight="SemiBold"
+                      Height="Auto" Padding="0,5"
+                      Margin="0,4,0,0"
+                      IsEnabled="False"/>
+              <Button x:Name="btn_export_excel"
+                      Content="Export Excel"
+                      Background="{DynamicResource OkBrush}"
+                      Foreground="White"
+                      BorderBrush="{DynamicResource OkBrush}"
+                      FontWeight="SemiBold"
+                      Height="Auto" Padding="0,5"
+                      Margin="0,4,0,0"/>
+            </StackPanel>
+            <!-- 3 note lines aligned to bottom of Export Excel button -->
+            <StackPanel VerticalAlignment="Bottom">
+              <TextBlock FontSize="10" TextWrapping="NoWrap">
+                <Run FontWeight="Bold" Foreground="{DynamicResource Text2Brush}">Import Excel:</Run>
+                <Run Foreground="{DynamicResource Text3Brush}"> preview changes - green = will update, red = read-only</Run>
+              </TextBlock>
+              <TextBlock FontSize="10" TextWrapping="NoWrap" Margin="0,2,0,0">
+                <Run FontWeight="Bold" Foreground="{DynamicResource Text2Brush}">Overwrite Data:</Run>
+                <Run Foreground="{DynamicResource Text3Brush}"> apply pending changes to the Revit model</Run>
+              </TextBlock>
+              <TextBlock FontSize="10" TextWrapping="NoWrap" Margin="0,2,0,0">
+                <Run FontWeight="Bold" Foreground="{DynamicResource Text2Brush}">ID</Run>
+                <Run Foreground="{DynamicResource Text3Brush}"> is the match key - Family Name and Type Name are read-only</Run>
+              </TextBlock>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+      </Grid>
+      <!-- /ADVANCED PANEL -->
+    </Grid>
+    <!-- /BODY -->
+
+    <!-- ══════════════════════════════════════
+         ROW 2 - SHIMMER
+    ══════════════════════════════════════ -->
+    <Canvas x:Name="canvas_shimmer"
+            Grid.Row="2"
+            ClipToBounds="True"
+            Background="{DynamicResource Border2Brush}"/>
+  </Grid>
+</Window>

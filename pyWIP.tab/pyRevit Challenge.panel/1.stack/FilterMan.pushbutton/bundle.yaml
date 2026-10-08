@@ -1,0 +1,4 @@
+name: FilterMan
+tooltip: >
+  Browse, filter, and bulk-edit Revit elements by category, family, type, or parameter value. Isolate, hide, color-code, export to Excel, and reimport changes. Save selections across sessions.
+min_revit_ver: 2022

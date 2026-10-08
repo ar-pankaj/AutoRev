@@ -1,0 +1,21 @@
+title:
+  en_us: One-Click Cleanup
+  ko: 원클릭 정리
+  fr_fr: Nettoyage en un clic
+  ru: Очистка в один клик
+  chinese_s: 一键清理
+  es_es: Limpieza con un clic
+  de_de: Ein-Klick-Bereinigung
+  pt_br: Limpeza com Um Clique
+tooltip:
+  en_us: pyRevit model hygiene scan — find issues, clean safely.
+  ko: pyRevit 모델 상태를 검사하고 안전하게 정리합니다.
+  fr_fr: Analyse d'hygiène du modèle pyRevit — détecter les problèmes et nettoyer en toute sécurité.
+  ru: Проверка гигиены модели pyRevit — найти проблемы и безопасно очистить.
+  chinese_s: pyRevit 模型健康扫描 — 发现问题并安全清理。
+  es_es: Escaneo de higiene del modelo pyRevit — detectar problemas y limpiar de forma segura.
+  de_de: pyRevit-Modellhygiene-Scan — Probleme finden und sicher bereinigen.
+  pt_br: Verificação de higiene do modelo pyRevit — encontre problemas e limpe com segurança.
+authors:
+  - pyRevit
+help_url: https://docs.pyrevitlabs.io/

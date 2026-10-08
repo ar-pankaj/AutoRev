@@ -1,0 +1,15 @@
+title:
+  en_us: |-
+    Check
+    Levels
+
+tooltip:
+  en_us: >-
+    Version: 1.1
+    Date: 12.27.25
+    _________________________________________________________________
+
+    Detects elements with an incorrect reference level and creates a Multi-cateogry schedule to identify and correct them.
+    Also creates a new 3D-View isolating these incorrect elements and levels for reference.
+
+author: Mateo Lopez
